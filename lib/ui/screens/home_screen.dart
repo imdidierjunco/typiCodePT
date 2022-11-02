@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:typicodept/providers/users_provider.dart';
 import 'package:http/http.dart' as http;
 
 import '../../model/user_model.dart';
@@ -14,19 +14,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final userProvider = UserProvider();
+  List<UserModel> data = <UserModel>[];
 
-  List<User> data = <User>[];
-
-  Future<List<User>> datos() async {
-    Uri url = 'jsonplaceholder.typicode.com/users' as Uri;
-    var resp = await http.post(url).timeout(const Duration(seconds: 10));
-
+  Future<List<UserModel>> datos() async {
+    var _url = 'jsonplaceholder.typicode.com';
+    Uri url = Uri.https(_url, '/users');
+    var resp = await http.get(url).timeout(const Duration(seconds: 10));
     var datos = jsonDecode(resp.body);
-
-    var users = <User>[];
+    var users = <UserModel>[];
     for (datos in datos) {
-      users.add(User.fromJson(datos));
+      users.add(UserModel.fromJson(datos));
     }
 
     return users;
@@ -34,7 +31,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     datos().then((value) {
       setState(() {
@@ -43,9 +39,21 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  final _pageController = PageController(
+    initialPage: 0,
+    viewportFraction: 0.25,
+  );
+
   @override
   Widget build(BuildContext context) {
-    userProvider.getUser();
+    final screenSize = MediaQuery.of(context).size;
+
+    _pageController.addListener(() {
+      if (_pageController.position.pixels >=
+          _pageController.position.maxScrollExtent - 25) {
+        datos();
+      }
+    });
     return Scaffold(
       appBar: AppBar(
         title: const Text('TypiCode Users'),
@@ -53,43 +61,52 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: SafeArea(
           child: Container(
-        padding: const EdgeInsets.all(15),
-        width: double.infinity,
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                  child: ListView.builder(
-                      itemCount: data.length,
-                      itemBuilder: (context, index) {
-                        return Container(
-                          padding: const EdgeInsets.all(10),
-                          child: ListTile(
-                            title: Text(data[index].company.name),
+              padding: const EdgeInsets.only(top: 5, left: 12, right: 12),
+              width: double.infinity,
+              child: ListView.builder(
+                  itemCount: data.length,
+                  itemBuilder: (context, index) {
+                    return Container(
+                      height: 130,
+                      decoration: const BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: Colors.blueAccent, width: 1))),
+                      child: Column(
+                        children: [
+                          const SizedBox(
+                            height: 15,
                           ),
-                        );
-                      }))
-            ]
-            // StreamBuilder(
-            //     stream: userProvider.usersStream,
-            //     builder: (BuildContext context, AsyncSnapshot snapshot) {
-            //       if (snapshot.hasData) {
-            //         return Container(
-            //           color: Colors.amberAccent,
-            //         );
-            //         // return MovieHorizontal(
-            //         //   movies: snapshot.data,
-            //         //   nextPage: userProvider.getUser(),
-            //         // );
-            //       } else {
-            //         return const Center(child: CircularProgressIndicator());
-            //       }
-            //     })
-
-            ),
-        //child: ListView.builder(itemBuilder: itemBuilder),
-      )),
+                          Text(data[index].company.name,
+                              style: const TextStyle(
+                                  color: Colors.greenAccent,
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.bold)),
+                          const SizedBox(
+                            height: 10,
+                          ),
+                          ListTile(
+                            leading: Image.asset(
+                              'assets/Logo Didier NB.png',
+                            ),
+                            title: Text(
+                              data[index].name,
+                              style: const TextStyle(
+                                  fontSize: 25, fontWeight: FontWeight.bold),
+                            ),
+                            trailing: Text(data[index].address.city,
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w400)),
+                            subtitle: Text(
+                              data[index].email,
+                              style: const TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.w300),
+                            ),
+                          )
+                        ],
+                      ),
+                    );
+                  }))),
     );
   }
 }
